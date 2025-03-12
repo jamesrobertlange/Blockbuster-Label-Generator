@@ -45,23 +45,30 @@ Additional Info:
 ================================================================
 Directory Structure
 ================================================================
+components/
+  VHSLabelGenerator.js
+pages/
+  api/
+    update-svg.js
+  _app.js
+  index.js
+public/
+  blockbuster-template.svg
+scripts/
+  setup.js
+styles/
+  globals.css
+utils/
+  svgHelper.js
 .gitattributes
 .gitignore
-components/VHSLabelGenerator.js
 LICENSE
 next.config.js
 package.json
-pages/_app.js
-pages/api/update-svg.js
-pages/index.js
 postcss.config.js
-public/blockbuster-template.svg
 README.md
-scripts/setup.js
 SETUP.md
-styles/globals.css
 tailwind.config.js
-utils/svgHelper.js
 vercel.json
 
 ================================================================
@@ -69,53 +76,9 @@ Files
 ================================================================
 
 ================
-File: .gitattributes
-================
-# Auto detect text files and perform LF normalization
-* text=auto
-
-================
-File: .gitignore
-================
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
-.DS_Store
-*.pem
-
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# local env files
-.env*.local
-.env
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-================
 File: components/VHSLabelGenerator.js
 ================
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const VHSLabelGenerator = () => {
   const [title, setTitle] = useState('FIGHT CLUB');
@@ -125,6 +88,11 @@ const VHSLabelGenerator = () => {
   const [productCode, setProductCode] = useState('FOX 20000306');
   const [svgContent, setSvgContent] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Character limits
+  const TITLE_MAX_LENGTH = 25;
+  const RENT_CODE_MAX_LENGTH = 3;
+  const PRODUCT_CODE_MAX_LENGTH = 18;
 
   // Fetch the SVG template directly
   useEffect(() => {
@@ -179,7 +147,7 @@ const VHSLabelGenerator = () => {
     }
   }, [title, category, rating, rentCode, productCode, svgContent, isLoading]);
   
-  const handleDownload = () => {
+  const handleDownloadSvg = () => {
     const updatedSvg = updateSvg();
     if (!updatedSvg) return;
     
@@ -196,83 +164,208 @@ const VHSLabelGenerator = () => {
     URL.revokeObjectURL(url);
   };
 
+  const handleDownloadPng = () => {
+    const updatedSvg = updateSvg();
+    if (!updatedSvg) return;
+    
+    // Create a temporary SVG element
+    const svg = new DOMParser().parseFromString(updatedSvg, 'image/svg+xml').documentElement;
+    
+    // Get the SVG dimensions
+    const svgWidth = svg.getAttribute('width').replace('in', '') * 96; // Convert inches to pixels (96 dpi)
+    const svgHeight = svg.getAttribute('height').replace('in', '') * 96;
+    
+    // Add extra padding to bottom to match top whitespace
+    const verticalPadding = 20; // Pixels of padding to add to bottom
+    
+    // Create a canvas element
+    const canvas = document.createElement('canvas');
+    canvas.width = svgWidth;
+    canvas.height = svgHeight + verticalPadding;
+    const ctx = canvas.getContext('2d');
+    
+    // Fill canvas with white background first
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Create an image to draw the SVG
+    const img = new Image();
+    img.onload = () => {
+      // Draw the image on the canvas
+      ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+      
+      // Convert canvas to PNG
+      const pngUrl = canvas.toDataURL('image/png');
+      
+      // Download the PNG
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = `blockbuster-vhs-${title.toLowerCase().replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+    };
+    
+    // Set the image source to the SVG blob URL
+    const svgBlob = new Blob([updatedSvg], { type: 'image/svg+xml' });
+    const svgUrl = URL.createObjectURL(svgBlob);
+    img.src = svgUrl;
+
+    // Clean up
+    img.onload = function() {
+      // Draw the image on the canvas
+      ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+      
+      // Convert canvas to PNG
+      const pngUrl = canvas.toDataURL('image/png');
+      
+      // Download the PNG
+      const a = document.createElement('a');
+      a.href = pngUrl;
+      a.download = `blockbuster-vhs-${title.toLowerCase().replace(/\s+/g, '-')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      
+      document.body.removeChild(a);
+      
+      // Clean up
+      URL.revokeObjectURL(svgUrl);
+    };
+    
+    img.src = svgUrl;
+  };
+
+  // Handle input change with character limit
+  const handleTitleChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    if (value.length <= TITLE_MAX_LENGTH) {
+      setTitle(value);
+    }
+  };
+
+  const handleRentCodeChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    if (value.length <= RENT_CODE_MAX_LENGTH) {
+      setRentCode(value);
+    }
+  };
+
+  const handleProductCodeChange = (e) => {
+    const value = e.target.value.toUpperCase();
+    if (value.length <= PRODUCT_CODE_MAX_LENGTH) {
+      setProductCode(value);
+    }
+  };
+
   return (
-    <div>
-      <h1>Blockbuster VHS Label Generator</h1>
-      <p>Create your own custom Blockbuster VHS label</p>
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6 text-center">Blockbuster VHS Label Generator</h1>
+      <p className="text-center mb-8">Create your own custom Blockbuster VHS label by adding in your details below.</p>
+      <p className="mt-2">Template generator designed by nostalgic ex Blockbuster employee <a href="https://www.jamesrobertlange.com/" target="_blank">Jimmy Lange</a>.</p>
       
-      <div>
-        <h2>Edit Label</h2>
-        <div>
-          <label>Title:</label>
-          <input 
-            type="text" 
-            value={title} 
-            onChange={(e) => setTitle(e.target.value.toUpperCase())} 
-          />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Edit Label</h2>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2">Title: ({title.length}/{TITLE_MAX_LENGTH})</label>
+            <input 
+              type="text" 
+              value={title} 
+              onChange={handleTitleChange} 
+              className="w-full px-3 py-2 border border-gray-300 rounded"
+              maxLength={TITLE_MAX_LENGTH}
+            />
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2">Category:</label>
+            <select 
+              value={category} 
+              onChange={(e) => setCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded"
+            >
+              <option value="ACTION">ACTION</option>
+              <option value="COMEDY">COMEDY</option>
+              <option value="DRAMA">DRAMA</option>
+              <option value="HORROR">HORROR</option>
+              <option value="SCI-FI">SCI-FI</option>
+              <option value="THRILLER">THRILLER</option>
+            </select>
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2">Rating:</label>
+            <select 
+              value={rating} 
+              onChange={(e) => setRating(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded"
+            >
+              <option value="G">G</option>
+              <option value="PG">PG</option>
+              <option value="PG-13">PG-13</option>
+              <option value="R">R</option>
+              <option value="NC-17">NC-17</option>
+            </select>
+          </div>
+          
+          <div className="mb-4">
+            <label className="block text-gray-700 mb-2">Rent Code: ({rentCode.length}/{RENT_CODE_MAX_LENGTH})</label>
+            <input 
+              type="text" 
+              value={rentCode} 
+              onChange={handleRentCodeChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded"
+              maxLength={RENT_CODE_MAX_LENGTH}
+            />
+          </div>
+          
+          <div className="mb-6">
+            <label className="block text-gray-700 mb-2">Product Code: ({productCode.length}/{PRODUCT_CODE_MAX_LENGTH})</label>
+            <input 
+              type="text" 
+              value={productCode} 
+              onChange={handleProductCodeChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded"
+              maxLength={PRODUCT_CODE_MAX_LENGTH}
+            />
+          </div>
+          
+          <div className="flex flex-wrap gap-4">
+            <button 
+              onClick={handleDownloadSvg} 
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+            >
+              Download SVG
+            </button>
+            <button 
+              onClick={handleDownloadPng} 
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            >
+              Download PNG
+            </button>
+          </div>
         </div>
         
-        <div>
-          <label>Category:</label>
-          <select value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="ACTION">ACTION</option>
-            <option value="COMEDY">COMEDY</option>
-            <option value="DRAMA">DRAMA</option>
-            <option value="HORROR">HORROR</option>
-            <option value="SCI-FI">SCI-FI</option>
-            <option value="THRILLER">THRILLER</option>
-          </select>
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Preview</h2>
+          <div id="preview-container" className="border border-gray-300 rounded p-4 min-h-[400px] flex items-center justify-center">
+            {isLoading ? (
+              <p className="text-gray-500">Loading preview...</p>
+            ) : (
+              <div className="max-w-full" dangerouslySetInnerHTML={{ __html: updateSvg() }} />
+            )}
+          </div>
         </div>
-        
-        <div>
-          <label>Rating:</label>
-          <select value={rating} onChange={(e) => setRating(e.target.value)}>
-            <option value="G">G</option>
-            <option value="PG">PG</option>
-            <option value="PG-13">PG-13</option>
-            <option value="R">R</option>
-            <option value="NC-17">NC-17</option>
-          </select>
-        </div>
-        
-        <div>
-          <label>Rent Code:</label>
-          <input 
-            type="text" 
-            value={rentCode} 
-            onChange={(e) => setRentCode(e.target.value.toUpperCase())} 
-          />
-        </div>
-        
-        <div>
-          <label>Product Code:</label>
-          <input 
-            type="text" 
-            value={productCode} 
-            onChange={(e) => setProductCode(e.target.value.toUpperCase())} 
-          />
-        </div>
-        
-        <button onClick={handleDownload}>Download SVG</button>
       </div>
       
-      <div>
-        <h2>Preview</h2>
-        <div id="preview-container" style={{ border: '1px solid #ccc', padding: '10px', minHeight: '400px' }}>
-          {isLoading ? (
-            <p>Loading preview...</p>
-          ) : (
-            <div dangerouslySetInnerHTML={{ __html: updateSvg() }} />
-          )}
-        </div>
-      </div>
-      
-      <div>
-        <h2>Instructions</h2>
-        <ol>
+      <div className="mt-12 bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Instructions</h2>
+        <ol className="list-decimal pl-6 space-y-2">
           <li>Customize your VHS label using the form above</li>
           <li>The preview updates automatically as you make changes</li>
-          <li>When you're satisfied with your design, click "Download SVG"</li>
+          <li>When you're satisfied with your design, click "Download SVG" for vector format or "Download PNG" for image format</li>
           <li>You can open and further edit the SVG file in any vector graphics software like Inkscape or Adobe Illustrator</li>
         </ol>
       </div>
@@ -281,88 +374,6 @@ const VHSLabelGenerator = () => {
 };
 
 export default VHSLabelGenerator;
-
-================
-File: LICENSE
-================
-MIT License
-
-Copyright (c) 2025 Jimmy Lange
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-
-================
-File: next.config.js
-================
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-    reactStrictMode: true,
-    swcMinify: true,
-    images: {
-      domains: [],
-    },
-    // Uncomment this if deploying to GitHub Pages
-    // basePath: process.env.NODE_ENV === 'production' ? '/blockbuster-vhs-generator' : '',
-  };
-  
-  module.exports = nextConfig;
-
-================
-File: package.json
-================
-{
-    "name": "blockbuster-vhs-generator",
-    "version": "0.1.0",
-    "private": true,
-    "scripts": {
-        "dev": "next dev",
-        "build": "next build",
-        "start": "next start",
-        "lint": "next lint",
-        "export": "next export"
-    },
-    "dependencies": {
-        "jsdom": "^21.1.1",
-        "next": "latest",
-        "react": "latest",
-        "react-dom": "latest"
-    },
-    "devDependencies": {
-        "@tailwindcss/postcss": "^4.0.13",
-        "autoprefixer": "^10.4.21",
-        "eslint": "latest",
-        "eslint-config-next": "latest",
-        "postcss": "latest",
-        "tailwindcss": "^4.0.13"
-    }
-}
-
-================
-File: pages/_app.js
-================
-import '../styles/globals.css';
-
-function MyApp({ Component, pageProps }) {
-  return <Component {...pageProps} />;
-}
-
-export default MyApp;
 
 ================
 File: pages/api/update-svg.js
@@ -378,6 +389,19 @@ export default function handler(req, res) {
 
   try {
     const { title, category, rating, rentCode, productCode } = req.body;
+    
+    // Check character limits
+    if (title.length > 25) {
+      return res.status(400).json({ message: 'Title exceeds 30 character limit' });
+    }
+    
+    if (rentCode.length > 3) {
+      return res.status(400).json({ message: 'Rent code exceeds a 4 character limit' });
+    }
+    
+    if (productCode.length > 18) {
+      return res.status(400).json({ message: 'Product code exceeds 22 character limit' });
+    }
     
     // Read the SVG template file
     const svgPath = path.join(process.cwd(), 'public', 'blockbuster-template.svg');
@@ -447,6 +471,17 @@ export default function handler(req, res) {
 }
 
 ================
+File: pages/_app.js
+================
+import '../styles/globals.css';
+
+function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}
+
+export default MyApp;
+
+================
 File: pages/index.js
 ================
 import Head from 'next/head';
@@ -457,8 +492,9 @@ export default function Home() {
     <div className="min-h-screen bg-gray-100">
       <Head>
         <title>Blockbuster VHS Label Generator</title>
-        <meta name="description" content="Create your own Blockbuster VHS label" />
+        <meta name="description" content="Create your own Blockbuster VHS label and export it for your own use!" />
         <link rel="icon" href="/favicon.ico" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       </Head>
 
       <main className="container mx-auto py-8 px-4">
@@ -467,20 +503,12 @@ export default function Home() {
 
       <footer className="mt-8 py-6 text-center text-gray-500 text-sm">
         <p>Blockbuster VHS Label Generator &copy; {new Date().getFullYear()}</p>
+        <p className="mt-2">Original SVG template designed by <a href="https://github.com/rfinnie/blockbuster">Ryan Finnie (CC-BY-SA)</a>.</p>
+        <p className="mt-2"><a href="https://github.com/jamesrobertlange/Blockbuster-Label-Generator">Repository link</a></p>
       </footer>
     </div>
   );
 }
-
-================
-File: postcss.config.js
-================
-module.exports = {
-    plugins: {
-      '@tailwindcss/postcss': {},
-      autoprefixer: {},
-    },
-  };
 
 ================
 File: public/blockbuster-template.svg
@@ -1809,76 +1837,6 @@ File: public/blockbuster-template.svg
 </svg>
 
 ================
-File: README.md
-================
-# Blockbuster VHS Label Generator
-
-A web application that generates customizable Blockbuster VHS labels in SVG format. Built with Next.js.
-
-## Features
-
-- Customize movie title, category, rating, rent code, and product code
-- Real-time preview of your custom VHS label
-- Download your creation as an SVG file
-- Compatible with vector graphics editors like Inkscape and Adobe Illustrator
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (version 14 or later)
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone https://github.com/yourusername/blockbuster-vhs-generator.git
-cd blockbuster-vhs-generator
-```
-
-2. Install dependencies
-```bash
-npm install
-# or
-yarn install
-```
-
-3. Run the development server
-```bash
-npm run dev
-# or
-yarn dev
-```
-
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
-
-## Usage
-
-1. Enter your desired title, category, rating, rent code, and product code
-2. The preview will update automatically as you make changes
-3. Click "Download SVG" when you're satisfied with your design
-4. Open the SVG file in any vector graphics editor for further customization
-
-## Deployment
-
-This is a Next.js project that can be easily deployed to platforms like Vercel:
-
-```bash
-npm install -g vercel
-vercel
-```
-
-## Credits
-
-- Original SVG template created by Ryan Finnie and is licensed under [CC-BY-SA](http://creativecommons.org/licenses/by-sa/4.0/)
-- Built with [Next.js](https://nextjs.org/)
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-================
 File: scripts/setup.js
 ================
 const fs = require('fs');
@@ -2090,6 +2048,371 @@ if (!fs.existsSync(path.join(rootDir, 'package.json'))) {
 console.log('Setup complete! You can now run "npm install" and then "npm run dev" to start the application.');
 
 ================
+File: styles/globals.css
+================
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* SVG Styles */
+.vhs-container svg {
+  max-width: 100%;
+  height: auto;
+}
+
+================
+File: utils/svgHelper.js
+================
+/**
+ * Update the SVG with the provided parameters
+ * @param {string} svgData - The original SVG data
+ * @param {Object} params - The parameters to update
+ * @returns {string} - The updated SVG data
+ */
+export function updateSvg(svgData, params) {
+  const { title, category, rating, rentCode, productCode } = params;
+  
+  if (!svgData) return null;
+  
+  let updatedSvg = svgData;
+  
+  // Replace the title (multiple instances)
+  updatedSvg = updatedSvg.replace(/FIGHT CLUB/g, title);
+  
+  // Replace the category
+  updatedSvg = updatedSvg.replace(/CATEGORY: DRAMA/g, `CATEGORY: ${category}`);
+  
+  // Replace the rating
+  updatedSvg = updatedSvg.replace(/RATING: R/g, `RATING: ${rating}`);
+  updatedSvg = updatedSvg.replace(/id="tspan67519">(.*?)<\/tspan>/g, `id="tspan67519">${rating}</tspan>`);
+  
+  // Replace the rent code
+  updatedSvg = updatedSvg.replace(/RENT CODE: T/g, `RENT CODE: ${rentCode}`);
+  
+  // Replace the product code
+  updatedSvg = updatedSvg.replace(/FOX 20000306/g, productCode);
+  
+  return updatedSvg;
+}
+
+/**
+ * Download the SVG file
+ * @param {string} svgData - The SVG data to download
+ * @param {string} filename - The filename for the download
+ */
+export function downloadSvg(svgData, filename) {
+  if (!svgData) return;
+  
+  const blob = new Blob([svgData], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Convert SVG to PNG and download
+ * @param {string} svgData - The SVG data
+ * @param {string} filename - The filename for the download
+ */
+export function svgToPngDownload(svgData, filename) {
+  if (!svgData) return;
+  
+  // Create a temporary SVG element
+  const svg = new DOMParser().parseFromString(svgData, 'image/svg+xml').documentElement;
+  
+  // Extract width and height from the SVG
+  let svgWidth = parseFloat(svg.getAttribute('width').replace('in', '')) * 96; // Convert inches to pixels (96 dpi)
+  let svgHeight = parseFloat(svg.getAttribute('height').replace('in', '')) * 96;
+  
+  // Ensure we have valid dimensions
+  if (isNaN(svgWidth) || isNaN(svgHeight)) {
+    // Fallback dimensions
+    svgWidth = 972; // 10.125in * 96dpi
+    svgHeight = 732; // 7.625in * 96dpi
+  }
+  
+  // Create a canvas element with the appropriate size
+  const canvas = document.createElement('canvas');
+  canvas.width = svgWidth;
+  canvas.height = svgHeight;
+  const ctx = canvas.getContext('2d');
+  
+  // Fill background with white (SVGs might have transparent backgrounds)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Create an image to draw the SVG
+  const img = new Image();
+  
+  // Set up the image loading handler
+  img.onload = function() {
+    // Draw the image on the canvas
+    ctx.drawImage(img, 0, 0, svgWidth, svgHeight);
+    
+    // Convert canvas to PNG and download
+    canvas.toBlob(function(blob) {
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 'image/png');
+  };
+  
+  // Handle errors
+  img.onerror = function() {
+    console.error('Error loading SVG for PNG conversion');
+  };
+  
+  // Set the image source to a blob URL of the SVG
+  const svgBlob = new Blob([svgData], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(svgBlob);
+  img.src = url;
+}
+
+================
+File: .gitattributes
+================
+# Auto detect text files and perform LF normalization
+* text=auto
+
+================
+File: .gitignore
+================
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+================
+File: LICENSE
+================
+MIT License
+
+Copyright (c) 2025 Jimmy Lange
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================
+File: next.config.js
+================
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+    reactStrictMode: true,
+    swcMinify: true,
+    images: {
+      domains: [],
+    },
+    // Uncomment this if deploying to GitHub Pages
+    // basePath: process.env.NODE_ENV === 'production' ? '/blockbuster-vhs-generator' : '',
+  };
+  
+  module.exports = nextConfig;
+
+================
+File: package.json
+================
+{
+    "name": "blockbuster-vhs-generator",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "lint": "next lint",
+        "export": "next export"
+    },
+    "dependencies": {
+        "jsdom": "^21.1.1",
+        "next": "latest",
+        "react": "latest",
+        "react-dom": "latest"
+    },
+    "devDependencies": {
+        "@tailwindcss/postcss": "^4.0.13",
+        "autoprefixer": "^10.4.21",
+        "eslint": "latest",
+        "eslint-config-next": "latest",
+        "postcss": "latest",
+        "tailwindcss": "^4.0.13"
+    }
+}
+
+================
+File: postcss.config.js
+================
+module.exports = {
+    plugins: {
+      '@tailwindcss/postcss': {},
+      autoprefixer: {},
+    },
+  };
+
+================
+File: README.md
+================
+# Blockbuster VHS Label Generator
+
+A web application that generates customizable Blockbuster VHS labels in SVG format. Built with Next.js from a former Blockbuster employee (me) with inspiration and SVGs templated by users on reddit.com/r/VHS and [directly from this repo](https://github.com/rfinnie/blockbuster) with minor updates.
+
+## Live Demo
+A [live demo of the app can be found here](https://blockbuster-label-generator.vercel.app/).
+
+## Features
+
+- Customize movie title, category, rating, rent code, and product code
+- Real-time preview of your custom VHS label
+- Download your creation as an SVG file
+- Compatible with vector graphics editors like Inkscape and Adobe Illustrator
+
+## Roadmap
+### Template Improvements
+- Implement query parameter support for auto-filling fields (like title, rating, etc).
+- Develop CSV upload functionality for batch label generation.
+- Add other stores, or at least do a mock-up of the one from Hometown Video.
+
+### Barcode Enhancements
+- Add custom barcode number features (personalized, randomized, custom last 3 digits).
+- Create system to link barcode numbers to URLs or an external database for use with plex, local hardware, etc.
+
+### Format Variants
+- Add support for different media formats (DVD, Blu-ray, VHS) with dropdown selection for proper width/height.
+- Add in margins and print preview options for physical media and printing.
+- Implement historical store location support (so I can represent my old Hammonton location and others with a dropdown).
+- Create variant templates with updated back designs and historical BlockBuster logo variations.
+
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (version 14 or later)
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/blockbuster-vhs-generator.git
+cd blockbuster-vhs-generator
+```
+
+2. Install dependencies
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Run the development server
+```bash
+npm run dev
+# or
+yarn dev
+```
+
+4. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Usage
+
+1. Enter your desired title, category, rating, rent code, and product code
+2. The preview will update automatically as you make changes
+3. Click "Download SVG" when you're satisfied with your design
+4. Open the SVG file in any vector graphics editor for further customization
+
+## Deployment
+
+This is a Next.js project that can be easily deployed to platforms like Vercel:
+
+```bash
+npm install -g vercel
+vercel
+```
+
+## Credits
+
+- Original SVG template created by Ryan Finnie and is licensed under [CC-BY-SA](http://creativecommons.org/licenses/by-sa/4.0/)
+- Built with [Next.js](https://nextjs.org/)
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+================
 File: SETUP.md
 ================
 # Setup Guide for Blockbuster VHS Label Generator
@@ -2286,32 +2609,6 @@ For any other issues:
 3. Check for errors in your browser's developer console
 
 ================
-File: styles/globals.css
-================
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* Custom styles */
-html,
-body {
-  padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-/* SVG Styles */
-.vhs-container svg {
-  max-width: 100%;
-  height: auto;
-}
-
-================
 File: tailwind.config.js
 ================
 /** @type {import('tailwindcss').Config} */
@@ -2333,99 +2630,6 @@ module.exports = {
     },
     plugins: [],
   };
-
-================
-File: utils/svgHelper.js
-================
-/**
- * Update the SVG with the provided parameters
- * @param {string} svgData - The original SVG data
- * @param {Object} params - The parameters to update
- * @returns {string} - The updated SVG data
- */
-export function updateSvg(svgData, params) {
-    const { title, category, rating, rentCode, productCode } = params;
-    
-    if (!svgData) return null;
-    
-    // Create a DOM parser to handle the SVG
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(svgData, 'image/svg+xml');
-    
-    // Find and update the title text
-    const titleTextElements = doc.querySelectorAll('text[transform="rotate(90)"] tspan');
-    titleTextElements.forEach(element => {
-      if (element.textContent.includes('FIGHT CLUB')) {
-        element.textContent = title;
-      }
-    });
-    
-    // Find and update the category
-    const categoryTextElements = doc.querySelectorAll('text[transform="rotate(90)"] tspan');
-    categoryTextElements.forEach(element => {
-      if (element.textContent.includes('CATEGORY:')) {
-        element.textContent = `CATEGORY: ${category}`;
-      }
-    });
-    
-    // Find and update the rating
-    const ratingTextElements = doc.querySelectorAll('text[transform="rotate(90)"] tspan');
-    ratingTextElements.forEach(element => {
-      if (element.textContent.includes('RATING:')) {
-        element.textContent = `RATING: ${rating}`;
-      }
-    });
-    
-    // Find and update the rent code
-    const rentCodeTextElements = doc.querySelectorAll('text[transform="rotate(90)"] tspan');
-    rentCodeTextElements.forEach(element => {
-      if (element.textContent.includes('RENT CODE:')) {
-        element.textContent = `RENT CODE: ${rentCode}`;
-      }
-    });
-    
-    // Find and update the product code
-    const productCodeTextElements = doc.querySelectorAll('text[transform="rotate(90)"] tspan');
-    productCodeTextElements.forEach(element => {
-      if (element.textContent.includes('FOX 20000306')) {
-        element.textContent = productCode;
-      }
-    });
-    
-    // Also update the title text at the bottom of the label
-    const bottomTitleElements = doc.querySelectorAll('text[transform="rotate(-90)"] tspan, text[y="-14.01248"] tspan');
-    bottomTitleElements.forEach(element => {
-      if (element.textContent.includes('FIGHT CLUB')) {
-        element.textContent = title;
-      }
-    });
-    
-    // Serialize the updated SVG back to a string
-    const serializer = new XMLSerializer();
-    return serializer.serializeToString(doc);
-  }
-  
-  /**
-   * Download the SVG file
-   * @param {string} svgData - The SVG data to download
-   * @param {string} filename - The filename for the download
-   */
-  export function downloadSvg(svgData, filename) {
-    if (!svgData) return;
-    
-    const blob = new Blob([svgData], { type: 'image/svg+xml' });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    
-    // Cleanup
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }
 
 ================
 File: vercel.json

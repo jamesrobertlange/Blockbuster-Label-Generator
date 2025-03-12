@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const VHSLabelGenerator = () => {
-  const [title, setTitle] = useState('FIGHT CLUB');
-  const [category, setCategory] = useState('DRAMA');
+  const [title, setTitle] = useState('EVIL DEAD II');
+  const [category, setCategory] = useState('HORROR');
   const [rating, setRating] = useState('R');
   const [rentCode, setRentCode] = useState('T');
   const [productCode, setProductCode] = useState('FOX 20000306');
@@ -181,7 +181,8 @@ const VHSLabelGenerator = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">Blockbuster VHS Label Generator</h1>
-      <p className="text-center mb-8">Create your own custom Blockbuster VHS label</p>
+      <p className="text-center mb-8">Create your own custom Blockbuster VHS label by adding in your details below.</p>
+      <p className="mt-2">Template generator designed by nostalgic ex Blockbuster employee <a href="https://www.jamesrobertlange.com/" target="_blank">Jimmy Lange</a>.</p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="bg-white p-6 rounded-lg shadow-md">
