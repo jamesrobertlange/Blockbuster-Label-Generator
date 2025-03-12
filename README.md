@@ -12,6 +12,23 @@ A [live demo of the app can be found here](https://blockbuster-label-generator.v
 - Download your creation as an SVG file
 - Compatible with vector graphics editors like Inkscape and Adobe Illustrator
 
+## Roadmap
+### Template Improvements
+- Implement query parameter support for auto-filling fields (like title, rating, etc).
+- Develop CSV upload functionality for batch label generation.
+- Add other stores, or at least do a mock-up of the one from Hometown Video.
+
+### Barcode Enhancements
+- Add custom barcode number features (personalized, randomized, custom last 3 digits).
+- Create system to link barcode numbers to URLs or an external database for use with plex, local hardware, etc.
+
+### Format Variants
+- Add support for different media formats (DVD, Blu-ray, VHS) with dropdown selection for proper width/height.
+- Add in margins and print preview options for physical media and printing.
+- Implement historical store location support (so I can represent my old Hammonton location and others with a dropdown).
+- Create variant templates with updated back designs and historical BlockBuster logo variations.
+
+
 ## Getting Started
 
 ### Prerequisites
