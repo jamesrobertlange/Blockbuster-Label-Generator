@@ -1,6 +1,6 @@
 # Blockbuster VHS Label Generator
 
-A web application that generates customizable Blockbuster VHS labels in SVG format. Built with Next.js from a former Blockbuster employee (me) with inspiration and SVGs templated by users on  reddit.com/r/VHS
+A web application that generates customizable Blockbuster VHS labels in SVG format. Built with Next.js from a former Blockbuster employee (me) with inspiration and SVGs templated by users on reddit.com/r/VHS and [directly from this repo](https://github.com/rfinnie/blockbuster) with minor updates.
 
 ## Live Demo
 A [live demo of the app can be found here](https://blockbuster-label-generator.vercel.app/).
