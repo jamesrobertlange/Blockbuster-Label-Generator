@@ -10,6 +10,19 @@ export default function handler(req, res) {
   try {
     const { title, category, rating, rentCode, productCode } = req.body;
     
+    // Check character limits
+    if (title.length > 25) {
+      return res.status(400).json({ message: 'Title exceeds 30 character limit' });
+    }
+    
+    if (rentCode.length > 3) {
+      return res.status(400).json({ message: 'Rent code exceeds a 4 character limit' });
+    }
+    
+    if (productCode.length > 18) {
+      return res.status(400).json({ message: 'Product code exceeds 22 character limit' });
+    }
+    
     // Read the SVG template file
     const svgPath = path.join(process.cwd(), 'public', 'blockbuster-template.svg');
     const svgData = fs.readFileSync(svgPath, 'utf8');
